@@ -1,12 +1,14 @@
 import { localStorageMock } from "../../tests/mocks/local-storage";
 import { mockPlayers } from "../../tests/mocks/players";
 import { generatePlayerRows } from "../../tests/utils/manage-players.utils";
+import { CHECKBOXES, SELECT, TABLES } from "../constants/element-ids";
 import { IGNORE_PREFIX } from "../constants/settings";
 import { PlayerListContext } from "../context/player";
 import DB from "../db/db";
 import { initSubscriptions, setUpList } from "../manage-players";
 import { Player } from "../types/player";
 import {
+  addNewProfile,
   fetchHotkeyById,
   getCheckboxId,
   getHotkeyId,
@@ -56,7 +58,7 @@ describe("Save to clipboard", () => {
     };
     document.body.innerHTML = `
         <table>
-            <tbody id="player_table_body"></tbody>
+            <tbody id="${TABLES.PLAYER}"></tbody>
         </table>
     `;
     const players = [
@@ -196,11 +198,11 @@ describe("Test toggle table header checkbox", () => {
       <table>
           <thead>
               <th>#</th>
-              <th><input type="checkbox" id="cb_toggle_all" checked="true" title="Toggle All" /></th>
+              <th><input type="checkbox" id="${CHECKBOXES.TOGGLE_ALL}" checked="true" title="Toggle All" /></th>
               <th>Player Name</th>
               <th>HotKey Assignment</th>
           </thead>
-          <tbody id="player_table_body"></tbody>
+          <tbody id="${TABLES.PLAYER}"></tbody>
       </table>
     `;
   });
@@ -212,7 +214,9 @@ describe("Test toggle table header checkbox", () => {
 
   it("Should toggle checkbox off", () => {
     setUpList(playerContext);
-    let checkbox = <HTMLInputElement>document.getElementById("cb_toggle_all");
+    let checkbox = <HTMLInputElement>(
+      document.getElementById(CHECKBOXES.TOGGLE_ALL)
+    );
     expect(checkbox.checked).toBe(true);
 
     const rowCheckbox = <HTMLInputElement>(
@@ -224,14 +228,16 @@ describe("Test toggle table header checkbox", () => {
     rowCheckbox.click();
     expect(rowCheckbox.checked).toBe(false);
 
-    checkbox = <HTMLInputElement>document.getElementById("cb_toggle_all");
+    checkbox = <HTMLInputElement>document.getElementById(CHECKBOXES.TOGGLE_ALL);
     expect(checkbox.checked).toBe(false);
   });
 
   it("Should toggle checkbox on", () => {
     setUpList(playerContext);
     // Same as previous test
-    let checkbox = <HTMLInputElement>document.getElementById("cb_toggle_all");
+    let checkbox = <HTMLInputElement>(
+      document.getElementById(CHECKBOXES.TOGGLE_ALL)
+    );
     expect(checkbox.checked).toBe(true);
 
     const rowCheckbox = <HTMLInputElement>(
@@ -243,14 +249,70 @@ describe("Test toggle table header checkbox", () => {
     rowCheckbox.click();
     expect(rowCheckbox.checked).toBe(false);
 
-    checkbox = <HTMLInputElement>document.getElementById("cb_toggle_all");
+    checkbox = <HTMLInputElement>document.getElementById(CHECKBOXES.TOGGLE_ALL);
     expect(checkbox.checked).toBe(false);
     //
 
     rowCheckbox.click();
     expect(rowCheckbox.checked).toBe(true);
 
-    checkbox = <HTMLInputElement>document.getElementById("cb_toggle_all");
+    checkbox = <HTMLInputElement>document.getElementById(CHECKBOXES.TOGGLE_ALL);
     expect(checkbox.checked).toBe(true);
+  });
+});
+
+describe("Test addNewProfile", () => {
+  let promptMock: any;
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+          <div class="header">
+              <h3>Guy in Chair Controls</h3>
+              <div class="profile-selection">
+                  <label for="${SELECT.PROFILE}">Profile Selection:</label>
+                  <select id="${SELECT.PROFILE}">
+                      <option value="default" id="default">default</option>
+                      <option value="add_new" id="add_new">ADD NEW</option>
+                  </select>
+              </div>
+          </div>
+        `;
+
+    promptMock = jest.spyOn(window, "prompt");
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("should add a new profile option to the select element", () => {
+    const selectElement = <HTMLSelectElement>(
+      document.getElementById(SELECT.PROFILE)
+    );
+    const newProfileName = "New Profile";
+    promptMock.mockReturnValue(newProfileName);
+
+    addNewProfile(selectElement);
+
+    const newElement = <HTMLOptionElement>(
+      document.getElementById(newProfileName)
+    );
+
+    expect(newElement.textContent).toBe(newProfileName);
+    expect(newElement.value).toBe(newProfileName);
+    expect(newElement.id).toBe(newProfileName);
+    expect(selectElement.value).toBe(newProfileName);
+  });
+
+  it("should not add a new profile if prompt is cancelled", () => {
+    const selectElement = <HTMLSelectElement>(
+      document.getElementById(SELECT.PROFILE)
+    );
+    promptMock.mockReturnValue(null);
+
+    addNewProfile(selectElement);
+
+    // Check that no new option was added
+    expect(selectElement.children.length).toBe(2);
   });
 });

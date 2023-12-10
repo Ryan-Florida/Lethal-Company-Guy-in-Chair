@@ -2,6 +2,8 @@ import {
   adaptPlayerListFromLocalStorage,
   adaptPlayerListToLocalStorage,
 } from "../adapters/player";
+import { adaptProfileFromLocalStorage } from "../adapters/profile";
+import { SELECT } from "../constants/element-ids";
 import { MAX_PLAYERS } from "../constants/settings";
 import DB from "../db/db";
 import { DataBase } from "../types/db";
@@ -14,10 +16,17 @@ export class PlayerListContext {
   private data: Player[];
   private subscribers: Subscriber[] = [];
   private db: DataBase;
+  private profile: string = "default";
 
   private constructor(DB: DataBase) {
     this.db = DB;
-    const storedPlayerList = this.db.get(this.localStorageKey);
+    const profile = this.db.get("activeProfile");
+    this.profile = profile
+      ? adaptProfileFromLocalStorage(profile).name
+      : SELECT.OPTIONS.DEFAULT;
+    const storedPlayerList = this.db.get(
+      `${this.profile}_${this.localStorageKey}`
+    );
     if (storedPlayerList) {
       this.data = adaptPlayerListFromLocalStorage(storedPlayerList);
     } else {
@@ -42,14 +51,36 @@ export class PlayerListContext {
 
   private propagateChanges() {
     this.publishToDB();
-    this.notififyListeners();
+    this.notifyListeners();
   }
 
   private publishToDB() {
     this.db.write(
-      this.localStorageKey,
+      `${this.profile}_${this.localStorageKey}`,
       adaptPlayerListToLocalStorage(this.data)
     );
+  }
+
+  public swapProfile() {
+    const storedPlayerList = this.db.get(
+      `${this.profile}_${this.localStorageKey}`
+    );
+    if (storedPlayerList) {
+      this.data = adaptPlayerListFromLocalStorage(storedPlayerList);
+    } else {
+      this.data = this.getInitialData();
+      this.publishToDB();
+    }
+    this.notifyListeners("profile");
+  }
+
+  public updateProfile(profile: string) {
+    this.profile = profile;
+    this.swapProfile();
+  }
+
+  public getCurrentProfile() {
+    return this.profile;
   }
 
   public static getInstance(DB: DataBase): PlayerListContext {
@@ -101,8 +132,14 @@ export class PlayerListContext {
     );
   }
 
-  private notififyListeners() {
-    this.subscribers.forEach((subscriber: Subscriber) => subscriber.listener());
+  private notifyListeners(stateToWatch: string | undefined = undefined) {
+    this.subscribers.forEach((subscriber: Subscriber) => {
+      if (!subscriber.stateToWatch) {
+        subscriber.listener();
+      } else if (subscriber.stateToWatch === stateToWatch) {
+        subscriber.listener();
+      }
+    });
   }
 
   // This method is really only for testing
