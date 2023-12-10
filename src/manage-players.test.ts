@@ -1,6 +1,7 @@
 import { localStorageMock } from "../tests/mocks/local-storage";
 import { mockPlayers } from "../tests/mocks/players";
 import { generatePlayerRows } from "../tests/utils/manage-players.utils";
+import { BUTTONS, CHECKBOXES, TABLES } from "./constants/element-ids";
 import { MAX_PLAYERS } from "./constants/settings";
 import { PlayerListContext } from "./context/player";
 import DB from "./db/db";
@@ -31,7 +32,7 @@ describe("Test create player row", () => {
     playerContext.setPlayerList(mockPlayers);
     document.body.innerHTML = `
       <table>
-          <tbody id="player_table_body"></tbody>
+          <tbody id="${TABLES.PLAYER}"></tbody>
       </table>
     `;
   });
@@ -101,7 +102,7 @@ describe("Test setup list", () => {
     playerContext = PlayerListContext.getInstance(DB);
     document.body.innerHTML = `
         <table>
-            <tbody id="player_table_body"></tbody>
+            <tbody id="${TABLES.PLAYER}"></tbody>
         </table>
     `;
     //@ts-ignore
@@ -118,7 +119,7 @@ describe("Test setup list", () => {
   it("should populate the player list with the correct number of players", () => {
     setUpList(playerContext);
 
-    const list = <HTMLTableElement>document.getElementById("player_table_body");
+    const list = <HTMLTableElement>document.getElementById(TABLES.PLAYER);
 
     expect(list.children.length).toBe(MAX_PLAYERS);
     for (let i = 0; i < MAX_PLAYERS; i++) {
@@ -141,17 +142,21 @@ describe("Test setup buttons", () => {
         <table id="player_list">
             <thead>
                 <th>#</th>
-                <th><input type="checkbox" id="cb_toggle_all" checked="true" title="Toggle All" /></th>
+                <th><input type="checkbox" id="${
+                  CHECKBOXES.TOGGLE_ALL
+                }" checked="true" title="Toggle All" /></th>
                 <th>Player Name</th>
                 <th>HotKey Assignment</th>
             </thead>
-            <tbody id="player_table_body">
+            <tbody id="${TABLES.PLAYER}">
             ${generatePlayerRows(playerContext.playerList())}
             </tbody>
         </table>
     </div>
-    <button type="button" id="btn_copy_to">Copy to Clipboard</button>
-    <button type="button" id="btn_clear_names">Clear All</button>
+    <button type="button" id="${
+      BUTTONS.COPY_TO_CLIPBOARD
+    }">Copy to Clipboard</button>
+    <button type="button" id="${BUTTONS.CLEAR_NAMES}">Clear All</button>
     `;
   });
 
@@ -163,7 +168,7 @@ describe("Test setup buttons", () => {
   it('should provision "Toggle All" checkbox with event', () => {
     setUpButtons(playerContext);
     const toggleAllButton = <HTMLInputElement>(
-      document.querySelector("#cb_toggle_all")
+      document.querySelector(`#${CHECKBOXES.TOGGLE_ALL}`)
     );
     toggleAllButton.click();
     for (let i = 0; i < MAX_PLAYERS; i++) {
@@ -190,7 +195,7 @@ describe("Test setup buttons", () => {
     });
 
     const clearNamesButton = <HTMLButtonElement>(
-      document.querySelector("#btn_clear_names")
+      document.querySelector(`#${BUTTONS.CLEAR_NAMES}`)
     );
 
     clearNamesButton.click();
@@ -207,7 +212,7 @@ describe("Test setup buttons", () => {
     const expected = "Ben\nRyan\nCaleb\nJeff";
     setUpButtons(playerContext);
     const copyToClipboardButton = <HTMLButtonElement>(
-      document.querySelector("#btn_copy_to")
+      document.querySelector(`#${BUTTONS.COPY_TO_CLIPBOARD}`)
     );
     copyToClipboardButton.click();
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expected);
